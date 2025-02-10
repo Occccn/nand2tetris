@@ -1,0 +1,81 @@
+[project]
+name = "nand2tetris"
+version = "0.1.0"
+description = "nand2tetris"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.0.0",
+    "pandas>=2.2.2",
+    "ipdb>=0.13.13",
+]
+
+[project.scripts]
+nb = "prj_scripts.scripts:launch_jupyterlab"
+test = "prj_scripts.scripts:run_pytest"
+lint = "prj_scripts.scripts:run_ruff"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "jupyter>=1.1.1",
+    "jupyterlab>=4.2.5",
+    "ipdb>=0.13.13",
+    "ruff>=0.6.8",
+    "mypy>=1.11.2",
+    "pytest>=8.3.3",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/modules",
+    "src/prj_scripts"
+]
+
+[tool.hatch.build.source]
+"modules" = "src/modules"
+"prj_scripts" = "src/prj_scripts"
+
+
+[tool.ruff]
+lint.select = [
+    "F", # Flake8
+    "B", # Black
+    "I", # isort
+    "E", # error
+    "W"  # warning
+]
+lint.ignore = []
+lint.fixable = ["ALL"]
+exclude = [
+    ".ruff_cache"
+]
+line-length = 119
+indent-width = 4
+target-version = "py310"
+
+[[tool.mypy.overrides]]
+module = [
+    'sklearn.*',
+    'google.cloud.*',
+    'google.cloud.storage.*',
+    'tqdm.*',
+    'plotly.*',
+    'dotenv.*',
+    'ipdb.*',
+    'statsmodels.*',
+    'tests.*',
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning"
+]
