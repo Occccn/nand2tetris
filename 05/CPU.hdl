@@ -1,0 +1,78 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/5/CPU.hdl
+/**
+ * The Hack Central Processing unit (CPU).
+ * Parses the binary code in the instruction input and executes it according to the
+ * Hack machine language specification. In the case of a C-instruction, computes the
+ * function specified by the instruction. If the instruction specifies to read a memory
+ * value, the inM input is expected to contain this value. If the instruction specifies
+ * to write a value to the memory, sets the outM output to this value, sets the addressM
+ * output to the target address, and asserts the writeM output (when writeM = 0, any
+ * value may appear in outM).
+ * If the reset input is 0, computes the address of the next instruction and sets the
+ * pc output to that value. If the reset input is 1, sets pc to 0.
+ * Note: The outM and writeM outputs are combinational: they are affected by the
+ * instruction's execution during the current cycle. The addressM and pc outputs are
+ * clocked: although they are affected by the instruction's execution, they commit to
+ * their new values only in the next cycle.
+ */
+CHIP CPU {
+
+    IN  inM[16],         // M value input  (M = contents of RAM[A])
+        instruction[16], // Instruction for execution
+        reset;           // Signals whether to re-start the current
+                         // program (reset==1) or continue executing
+                         // the current program (reset==0).
+
+    OUT outM[16],        // M value output
+        writeM,          // Write to M? 
+        addressM[15],    // Address in data memory (of M)
+        pc[15];          // address of next instruction
+
+    PARTS:
+	//// Replace this comment with your code.
+
+    //dddを使ってどこに格納するか判定する
+    //0,0,0でどこにも保存しない。instruction[3]でram[A]でwriteMとそのまま対応
+    //,instruction[4]でD,instruction[5]でA
+    //Aの場合は、A命令でも保存するので特殊
+    And (a=instruction[3], b=instruction[15], out=writeM);
+    And (a=instruction[4], b=instruction[15], out=loadD);
+    Not(in= instruction[15], out= notins15);
+    Or (a=instruction[5], b=notins15, out=loadA);
+
+    //A命令であれば、instructionでなければ計算結果を保存するのでその処理
+    //実際に保存するかはloadAしだい
+    Mux16(a= instruction, b=outalu , sel= instruction[15], out= inageg);
+    ARegister(in=inageg , load= loadA, out= outareg, out[0..14]= addressM);
+
+    DRegister(in= outalu, load=loadD, out=outdreg);
+    Mux16(a= outareg, b=inM , sel= instruction[12], out= RAMAorA);
+    ALU(x=outdreg , y=RAMAorA , zx=instruction[11] , nx=instruction[10] , 
+    zy=instruction[9] , ny=instruction[8] , f= instruction[7], no=instruction[6] , out=outalu ,out=outM, zr=zr , ng=ng );
+    //ALUの出力を使って、jumpするかどうかのフラグを作成したい.jjjとzr,ngを用いれば良い
+    //out=0でzr = 1, out <0でng = 1
+    //instruction[1]は0でjumpflag,instruction[0]はposでjumpflag,instruction[2]はnegでjumpflag
+
+
+    Not (in=ng, out=notng);
+    //0かつ0jumpflagあるか
+    And(a= zr, b= instruction[1], out= zrjump);
+    //x<0かつnegjumpflagあるか
+    And(a= ng, b= instruction[2], out= ngjump);
+    //x>=0かつposjumpflagがあるか(0ではないことを判定しないといけない)
+    And(a= notng, b= instruction[0], out= posjumptmp);
+    Not(in= zr, out=notzr );
+    And(a= notzr, b= posjumptmp, out= posjump);
+
+    Or(a=zrjump , b=ngjump , out= zrngjump);
+    Or(a=posjump , b=zrngjump , out= jumptmp);
+    //C命令か判定
+    And (a=instruction[15], b=jumptmp, out=loadPC);
+
+    PC(in=outareg , load= loadPC, inc=true , reset= reset, out= outpc,out[0..14]=pc);
+
+    
+}
