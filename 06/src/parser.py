@@ -1,15 +1,12 @@
 from collections import deque
-from pathlib import Path
 from typing import Literal
 
 import ipdb
 
-BASE_DIR = Path(__file__).parents[1]
-
 
 class Parser:
-    def __init__(self, filename: str):
-        with open(BASE_DIR / filename) as f:
+    def __init__(self, path: str):
+        with open(path) as f:
             self.lines = deque(f.readlines())
 
         ## read the file
@@ -26,6 +23,7 @@ class Parser:
             if self.current_line.startswith("//") or self.current_line == "\n":
                 continue
             else:
+                self.current_line = self.current_line.strip()
                 break
 
     def InstructionType(self) -> Literal["A_INSTRUCTION", "C_INSTRUCTION", "L_INSTRUCTION"]:
@@ -45,35 +43,29 @@ class Parser:
             return ""
 
     def dest(self) -> str:
-        if self.InstructionType() == "C_INSTRUCTION":
-            if "=" in self.current_line:
-                return self.current_line.split("=")[0]
-            else:
-                return ""
-        return ""
+        if "=" in self.current_line:
+            return self.current_line.split("=")[0]
+        else:
+            return ""
 
     def comp(self) -> str:
-        if self.InstructionType() == "C_INSTRUCTION":
-            if "=" in self.current_line:
-                part1 = self.current_line.split("=")[1]
-                if ";" in part1:
-                    return part1.split(";")[0]
-                else:
-                    return part1
+        if "=" in self.current_line:
+            part1 = self.current_line.split("=")[1]
+            if ";" in part1:
+                return part1.split(";")[0]
             else:
-                if ";" in self.current_line:
-                    return self.current_line.split(";")[0]
-                else:
-                    return self.current_line
-        return ""
+                return part1
+        else:
+            if ";" in self.current_line:
+                return self.current_line.split(";")[0]
+            else:
+                return self.current_line
 
     def jump(self) -> str:
-        if self.InstructionType() == "C_INSTRUCTION":
-            if ";" in self.current_line:
-                return self.current_line.split(";")[1]
-            else:
-                return ""
-        return ""
+        if ";" in self.current_line:
+            return self.current_line.split(";")[1]
+        else:
+            return ""
 
 
 if __name__ == "__main__":
