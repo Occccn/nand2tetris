@@ -33,14 +33,10 @@ dev-dependencies = [
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = [
-    "src/modules",
-    "src/prj_scripts"
-]
+packages = ["06/src06"]
 
 [tool.hatch.build.source]
-"modules" = "src/modules"
-"prj_scripts" = "src/prj_scripts"
+"src06" = "06/src06"
 
 
 [tool.ruff]

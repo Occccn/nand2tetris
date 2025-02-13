@@ -1,8 +1,8 @@
-from code import Code
 from collections import deque
 from pathlib import Path
 
-from parser import Parser
+from src06.code import Code
+from src06.parser import Parser
 
 BASE_DIR = Path(__file__).parents[1]
 
