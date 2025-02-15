@@ -10,6 +10,7 @@ class Parser:
             self.lines = deque(f.readlines())
 
         ## read the file
+        self.current_line_number: int = 0
 
     def HasMoreLines(self) -> bool:
         if len(self.lines) == 0:
@@ -20,7 +21,8 @@ class Parser:
     def advance(self) -> None:
         while self.HasMoreLines():
             self.current_line = self.lines.popleft()
-            if self.current_line.startswith("//") or self.current_line == "\n":
+            self.current_line = self.current_line.strip()
+            if self.current_line.startswith("//") or self.current_line == "\n" or self.current_line == "":
                 continue
             else:
                 self.current_line = self.current_line.strip()
@@ -28,10 +30,12 @@ class Parser:
 
     def InstructionType(self) -> Literal["A_INSTRUCTION", "C_INSTRUCTION", "L_INSTRUCTION"]:
         if self.current_line.startswith("@"):
+            self.current_line_number += 1
             return "A_INSTRUCTION"
         elif self.current_line.startswith("("):
             return "L_INSTRUCTION"
         else:
+            self.current_line_number += 1
             return "C_INSTRUCTION"
 
     def symbol(self) -> str:
@@ -69,7 +73,7 @@ class Parser:
 
 
 if __name__ == "__main__":
-    p = Parser("asm/add/Add.asm")
+    p = Parser("asm/max/MaxL.asm")
     print(p.lines)
     p.advance()
     ipdb.set_trace()
