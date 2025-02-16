@@ -30,3 +30,19 @@ def test_commandType(parser):
     assert parser.commandType() == "C_ARITHMETIC"
     parser.current_line = "not"
     assert parser.commandType() == "C_ARITHMETIC"
+
+
+def test_arg1(parser):
+    parser.current_line = "add"
+    assert parser.arg1() == "add"
+    parser.current_line = "push constant 7"
+    assert parser.arg1() == "constant"
+    parser.current_line = "pop local 0"
+    assert parser.arg1() == "local"
+
+
+def test_arg2(parser):
+    parser.current_line = "push constant 7"
+    assert parser.arg2() == 7
+    parser.current_line = "pop local 0"
+    assert parser.arg2() == 0

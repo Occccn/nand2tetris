@@ -46,3 +46,13 @@ class Parser:
             return "C_POP"
         else:
             return "C_CALL"
+
+    def arg1(self) -> str:
+        if self.commandType() == "C_ARITHMETIC":
+            return self.current_line
+        else:
+            return self.current_line.split()[1]
+
+    def arg2(self) -> int | None:
+        # if self.commandType() in ["C_POP", "C_FUNCTION", "C_CALL", "C_PUSH"]:
+        return int(self.current_line.split()[2])
