@@ -14,9 +14,11 @@ def parser():
 
 def test_HasMoreLines(parser):
     parser.lines = deque(["@2", "D=A", "@3", "D=D+A"])
-    assert parser.HasMoreLines() == True
-    parser.lines = []
-    assert parser.HasMoreLines() == False
+    if not parser.HasMoreLines():
+        raise AssertionError("HasMoreLines() should return True")
+    parser.lines = deque([])
+    if parser.HasMoreLines():
+        raise AssertionError("HasMoreLines() should return False")
 
 
 def test_advance(parser):
