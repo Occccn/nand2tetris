@@ -1,3 +1,4 @@
+import argparse
 from collections import deque
 from pathlib import Path
 
@@ -56,8 +57,8 @@ class Assembler:
             else:
                 continue
 
-    def write_binary(self):
-        with open("output.hack", "w") as f:
+    def write_binary(self, filename: str) -> None:
+        with open(BASE_DIR / "outputs" / f"{filename}.hack", "w") as f:
             for i in range(len(self.binary_instructions)):
                 instruction = self.binary_instructions[i]
                 if i == len(self.binary_instructions) - 1:
@@ -67,7 +68,15 @@ class Assembler:
 
 
 if __name__ == "__main__":
-    assembler = Assembler("pong/Pong.asm")
+    parser = argparse.ArgumentParser(description="assembler for nand2tetris")  # 2. パーサを作る
+
+    # 3. parser.add_argumentで受け取る引数を追加していく
+    parser.add_argument("-f", "--file", help="file name to assemble", required=True)
+    args = parser.parse_args()  # 4. 引数を解析
+
+    file_name = args.file
+    assembler = Assembler(file_name)
     assembler.first_pass()
     assembler.compile_assembler()
-    assembler.write_binary()
+    hack_file_name = file_name.split(".")[0]
+    assembler.write_binary(hack_file_name)
