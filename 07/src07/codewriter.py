@@ -9,6 +9,24 @@ class CodeWriter:
         self.pop_stack = "@SP\nA=M-1\nD=M\n@SP\nM=M-1\n"
 
     def writeAtithmetic(self, command: str) -> None:
+        if command == "add":
+            self.f_stream.write(f"{self.pop_stack}A=A-1\nM=M+D\n")
+        elif command == "sub":
+            self.f_stream.write(f"{self.pop_stack}A=A-1\nM=M-D\n")
+        elif command == "neg":
+            self.f_stream.write("@SP\nA=M-1\nM=-M\n")
+        elif command == "eq":
+            pass
+        elif command == "gt":
+            pass
+        elif command == "lt":
+            pass
+        elif command == "and":
+            pass
+        elif command == "or":
+            pass
+        elif command == "not":
+            pass
         pass
 
     def writePushPop(self, command: Literal["C_PUSH", "C_POP"], segment: str, index: int) -> None:
