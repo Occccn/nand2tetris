@@ -16,18 +16,23 @@ class CodeWriter:
         elif command == "neg":
             self.f_stream.write("@SP\nA=M-1\nM=-M\n")
         elif command == "eq":
-            pass
+            self.f_stream.write(
+                f"{self.pop_stack}A=A-1\nD=M-D\n@EQ_TRUE\nD;JEQ\n@SP\nA=M-1\nM=0\n@EQ_END\n0;JMP\n(EQ_TRUE)\n@SP\nA=M-1\nM=-1\n(EQ_END)\n"
+            )
         elif command == "gt":
-            pass
+            self.f_stream.write(
+                f"{self.pop_stack}A=A-1\nD=M-D\n@GT_TRUE\nD;JGT\n@SP\nA=M-1\nM=0\n@GT_END\n0;JMP\n(GT_TRUE)\n@SP\nA=M-1\nM=-1\n(GT_END)\n"
+            )
         elif command == "lt":
-            pass
+            self.f_stream.write(
+                f"{self.pop_stack}A=A-1\nD=M-D\n@LT_TRUE\nD;JLT\n@SP\nA=M-1\nM=0\n@LT_END\n0;JMP\n(LT_TRUE)\n@SP\nA=M-1\nM=-1\n(LT_END)\n"
+            )
         elif command == "and":
-            pass
+            self.f_stream.write(f"{self.pop_stack}A=A-1\nM=D&M\n")
         elif command == "or":
-            pass
+            self.f_stream.write(f"{self.pop_stack}A=A-1\nM=D|M\n")
         elif command == "not":
-            pass
-        pass
+            self.f_stream.write("@SP\nA=M-1\nM=!M\n")
 
     def writePushPop(self, command: Literal["C_PUSH", "C_POP"], segment: str, index: int) -> None:
         if command == "C_PUSH":
