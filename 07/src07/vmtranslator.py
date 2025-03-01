@@ -18,6 +18,7 @@ class VMTranslator:
         while self.parser.HasMoreLines():
             self.parser.advance()
             command_type = self.parser.commandType()
+            self.code_writer.debug(self.parser.current_line)
             arg = self.parser.arg1()
             if command_type == "C_ARITHMETIC":
                 self.code_writer.writeAtithmetic(arg)
