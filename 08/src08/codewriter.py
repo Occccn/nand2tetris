@@ -75,16 +75,16 @@ class CodeWriter:
             elif segment == "that":
                 self.f_stream.write(f"@{index}\nD=A\n@THAT\nD=D+M\n@R13\nM=D\n{self.pop_stack}@R13\nA=M\nM=D\n")
 
-        # RAM[0]の位置にstaclの最上位のアドレスがある
-        # local/argument/this/thatの最上位アドレスはRAM[1]~RAM[4]に格納されている
-        # constantはその値をスタックに格納する
-        # temp iはRAM[5+i]に格納されている
-        # pointer 0はthis, 1はthatにアクセス
-
-        # if command == "C_PUSH":
-        #     if segment == "constant":
-
         pass
+
+        def writeLabel(self, label: str) -> None:
+            self.f_stream.write(f"({label})\n")
+
+        def writeGoto(self, label: str) -> None:
+            self.f_stream.write(f"@{label}\n0;JMP\n")
+
+        def writeIf(self, label: str) -> None:
+            self.f_stream.write(f"{self.pop_stack}@{label}\nD;JNE\n")
 
     def debug(self, current_line: str) -> None:
         self.f_stream.write(f"// {current_line}\n")
