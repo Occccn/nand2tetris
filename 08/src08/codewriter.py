@@ -86,6 +86,11 @@ class CodeWriter:
         def writeIf(self, label: str) -> None:
             self.f_stream.write(f"{self.pop_stack}@{label}\nD;JNE\n")
 
+        def writeFunction(self, function_name: str, nVars: int) -> None:
+            self.f_stream.write(f"({function_name})\n")
+            for _ in range(nVars):
+                self.f_stream.write(f"@0\nD=A\n{self.push_stack}")
+
     def debug(self, current_line: str) -> None:
         self.f_stream.write(f"// {current_line}\n")
 
