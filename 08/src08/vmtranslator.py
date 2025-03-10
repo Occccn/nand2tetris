@@ -1,8 +1,8 @@
 import argparse
 from pathlib import Path
 
-from src07.codewriter import CodeWriter
-from src07.parser import Parser
+from src08.codewriter import CodeWriter
+from src08.parser import Parser
 
 BASE_DIR = Path(__file__).parents[1]
 
