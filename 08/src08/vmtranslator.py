@@ -26,6 +26,18 @@ class VMTranslator:
             if command_type in ["C_PUSH", "C_POP"]:
                 index = self.parser.arg2()
                 self.code_writer.writePushPop(command_type, arg, index)
+            if command_type == "C_LABEL":
+                self.code_writer.writeLabel(arg)
+            if command_type == "C_GOTO":
+                self.code_writer.writeGoto(arg)
+            if command_type == "C_IF":
+                self.code_writer.writeIf(arg)
+            if command_type == "C_FUNCTION":
+                self.code_writer.writeFunction(arg, self.parser.arg2())
+            if command_type == "C_RETURN":
+                self.code_writer.writeReturn()
+            if command_type == "C_CALL":
+                self.code_writer.writeCall(arg, self.parser.arg2())
         self.code_writer.close()
 
 
@@ -37,5 +49,5 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dir", help="dir name to vm", required=True)
     args = parser.parse_args()  # 4. 引数を解析
 
-    vmtranslator = VMTranslator(args.file, args.dir)
+    vmtranslator = VMTranslator(filename=args.file, dirname=args.dir)
     vmtranslator.translate()
