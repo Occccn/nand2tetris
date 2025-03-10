@@ -1,7 +1,7 @@
 from collections import deque
 from typing import Literal
 
-from src07.arithmetic import Arithmetic
+from src08.arithmetic import Arithmetic
 
 
 class Parser:
@@ -31,7 +31,10 @@ class Parser:
 
     def commandType(
         self,
-    ) -> Literal["C_ARITHMETIC", "C_PUSH", "C_POP", "C_LABEL", "C_GOTO", "C_IF", "C_FUNCTION", "C_RETURN", "C_CALL"]:
+    ) -> (
+        Literal["C_ARITHMETIC", "C_PUSH", "C_POP", "C_LABEL", "C_GOTO", "C_IF", "C_FUNCTION", "C_RETURN", "C_CALL"]
+        | None
+    ):
         # C_ARITHMETIC
         if (
             self.current_line.split()[0]
@@ -44,8 +47,19 @@ class Parser:
         # C_POP
         elif self.current_line.startswith("pop"):
             return "C_POP"
-        else:
+        elif self.current_line.startswith("label"):
+            return "C_LABEL"
+        elif self.current_line.startswith("goto"):
+            return "C_GOTO"
+        elif self.current_line.startswith("if"):
+            return "C_IF"
+        elif self.current_line.startswith("function"):
+            return "C_FUNCTION"
+        elif self.current_line.startswith("return"):
+            return "C_RETURN"
+        elif self.current_line.startswith("call"):
             return "C_CALL"
+        return None
 
     def arg1(self) -> str:
         if self.commandType() == "C_ARITHMETIC":
