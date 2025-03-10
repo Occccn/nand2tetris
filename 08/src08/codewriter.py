@@ -11,6 +11,7 @@ class CodeWriter:
         self.count_eq = 1
         self.count_gt = 1
         self.count_lt = 1
+        self.count_cl = 1
 
     def writeAtithmetic(self, command: str) -> None:
         if command == "add":
@@ -90,6 +91,25 @@ class CodeWriter:
             self.f_stream.write(f"({function_name})\n")
             for _ in range(nVars):
                 self.f_stream.write(f"@0\nD=A\n{self.push_stack}")
+
+        def writeCall(self, function_name: str, nArgs: int) -> None:
+            return_address = f"{function_name}{self.count_cl}"
+            self.count_cl += 1
+            # return_addressを先に生成して、pushhしても6章のassemblerにおけるfirst_passで
+            # シンボルテーブルに登録されるため、問題ない
+            # 各種のアドレスをpushする。pushすることで、呼び出し先から触れない
+            self.f_stream.write(f"@{return_address}\nD=A\n{self.push_stack}\n")
+            self.f_stream.write(f"@LCL\nD=M\n{self.push_stack}\n")
+            self.f_stream.write(f"@ARG\nD=M\n{self.push_stack}\n")
+            self.f_stream.write(f"@THIS\nD=M\n{self.push_stack}\n")
+            self.f_stream.write(f"@THAT\nD=M\n{self.push_stack}\n")
+            # ARG/LCLは呼び出し先の関数ように設定する
+            self.f_stream.write(f"@SP\nD=M\n@5\nD=D-A\n@{nArgs}\nD=D-A\n@ARG\nM=D\n")
+            self.f_stream.write("@SP\nD=M\n@LCL\nM=D\n")
+            # 関数にジャンプ
+            self.f_stream.write(f"@{function_name}\n0;JMP\n")
+            # return_addressを追加
+            self.f_stream.write(f"({return_address})\n")
 
     def debug(self, current_line: str) -> None:
         self.f_stream.write(f"// {current_line}\n")
