@@ -111,6 +111,26 @@ class CodeWriter:
             # return_addressを追加
             self.f_stream.write(f"({return_address})\n")
 
+        def writeReturn(self) -> None:
+            # LCLをR13に一時保存する
+            self.f_stream.write("@LCL\nD=M\n@R13\nM=D\n")
+            # returnAddressをR14に一時保存
+            self.f_stream.write("@13\nD=M\n@5\nA=D-A\nD=M\n@R14\nM=D\n")
+            # *ARG = pop()
+            self.f_stream.write(f"{self.pop_stack}@ARG\nA=M\nM=D\n")
+            # SP = ARG + 1
+            self.f_stream.write("@ARG\nD=M+1\n@SP\nM=D\n")
+            # THAT = *(endFrame - 1)
+            self.f_stream.write("@R13\nD=M\n@1\nA=D-A\nD=M\n@THAT\nM=D\n")
+            # THIS = *(endFrame - 2)
+            self.f_stream.write("@R13\nD=M\n@2\nA=D-A\nD=M\n@THIS\nM=D\n")
+            # ARG = *(endFrame - 3)
+            self.f_stream.write("@R13\nD=M\n@3\nA=D-A\nD=M\n@ARG\nM=D\n")
+            # LCL = *(endFrame - 4)
+            self.f_stream.write("@R13\nD=M\n@4\nA=D-A\nD=M\n@LCL\nM=D\n")
+            # goto returnAddress
+            self.f_stream.write("@R14\nA=M\n0;JMP\n")
+
     def debug(self, current_line: str) -> None:
         self.f_stream.write(f"// {current_line}\n")
 
