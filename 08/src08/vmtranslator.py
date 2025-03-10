@@ -8,9 +8,10 @@ BASE_DIR = Path(__file__).parents[1]
 
 
 class VMTranslator:
-    def __init__(self, filename):
-        self.inputpath = BASE_DIR / "vm" / filename / f"{filename}.vm"
-        self.outputpath = BASE_DIR / "vm" / filename / f"{filename}.asm"
+    def __init__(self, dirname, filename):
+        self.dir = dirname
+        self.inputpath = BASE_DIR / "vm" / self.dir / filename / f"{filename}.vm"
+        self.outputpath = BASE_DIR / "vm" / self.dir / filename / f"{filename}.asm"
         self.parser = Parser(self.inputpath)
         self.code_writer = CodeWriter(self.outputpath)
 
@@ -33,7 +34,8 @@ if __name__ == "__main__":
 
     # 3. parser.add_argumentで受け取る引数を追加していく
     parser.add_argument("-f", "--file", help="file name to vm", required=True)
+    parser.add_argument("-d", "--dir", help="dir name to vm", required=True)
     args = parser.parse_args()  # 4. 引数を解析
 
-    vmtranslator = VMTranslator(args.file)
+    vmtranslator = VMTranslator(args.file, args.dir)
     vmtranslator.translate()
