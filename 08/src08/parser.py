@@ -63,7 +63,7 @@ class Parser:
 
     def arg1(self) -> str:
         if self.commandType() == "C_ARITHMETIC":
-            return self.current_line
+            return self.current_line.split()[0]
         else:
             return self.current_line.split()[1]
 
