@@ -7,11 +7,13 @@ class CodeWriter:
         self.push_stack = "@SP\nA=M\nM=D\n@SP\nM=M+1\n"
         # pushするためのアドレスが指定されているため、popする際は-1が必要
         # self.pop_stack = "@SP\nA=M-1\nD=M\n@SP\nM=M-1\n"
-        self.pop_stack = "@SP\nM=M-1\n@SP\nA=M\nD=M\n"
+        self.pop_stack = "@SP\nM=M-1\nA=M\nD=M\n"
         self.count_eq = 1
         self.count_gt = 1
         self.count_lt = 1
         self.count_cl = 1
+
+    # def command1(self, name: str) -> None:
 
     def writeAtithmetic(self, command: str) -> None:
         if command == "add":
@@ -53,13 +55,25 @@ class CodeWriter:
             elif segment == "static":
                 self.f_stream.write(f"@{index + 16}\nD=M\n{self.push_stack}")
             elif segment == "local":
-                self.f_stream.write(f"@{index}\nD=A\n@LCL\nA=D+M\nD=M\n{self.push_stack}")
+                self.f_stream.write("@LCL\nA=M\n")
+                for _ in range(index):
+                    self.f_stream.write("A=A+1\n")
+                self.f_stream.write(f"D=M\n{self.push_stack}")
             elif segment == "argument":
-                self.f_stream.write(f"@{index}\nD=A\n@ARG\nA=D+M\nD=M\n{self.push_stack}")
+                self.f_stream.write("@ARG\nA=M\n")
+                for _ in range(index):
+                    self.f_stream.write("A=A+1\n")
+                self.f_stream.write(f"D=M\n{self.push_stack}")
             elif segment == "this":
-                self.f_stream.write(f"@{index}\nD=A\n@THIS\nA=D+M\nD=M\n{self.push_stack}")
+                self.f_stream.write("@THIS\nA=M\n")
+                for _ in range(index):
+                    self.f_stream.write("A=A+1\n")
+                self.f_stream.write(f"nD=M\n{self.push_stack}")
             elif segment == "that":
-                self.f_stream.write(f"@{index}\nD=A\n@THAT\nA=D+M\nD=M\n{self.push_stack}")
+                self.f_stream.write("@THAT\nA=M\n")
+                for _ in range(index):
+                    self.f_stream.write("A=A+1\n")
+                self.f_stream.write(f"D=M\n{self.push_stack}")
         elif command == "C_POP":
             if segment == "temp":
                 self.f_stream.write(f"{self.pop_stack}@{5 + index}\nM=D\n")
@@ -78,58 +92,58 @@ class CodeWriter:
 
         pass
 
-        def writeLabel(self, label: str) -> None:
-            self.f_stream.write(f"({label})\n")
+    def writeLabel(self, label: str) -> None:
+        self.f_stream.write(f"({label})\n")
 
-        def writeGoto(self, label: str) -> None:
-            self.f_stream.write(f"@{label}\n0;JMP\n")
+    def writeGoto(self, label: str) -> None:
+        self.f_stream.write(f"@{label}\n0;JMP\n")
 
-        def writeIf(self, label: str) -> None:
-            self.f_stream.write(f"{self.pop_stack}@{label}\nD;JNE\n")
+    def writeIf(self, label: str) -> None:
+        self.f_stream.write(f"{self.pop_stack}@{label}\nD;JNE\n")
 
-        def writeFunction(self, function_name: str, nVars: int) -> None:
-            self.f_stream.write(f"({function_name})\n")
-            for _ in range(nVars):
-                self.f_stream.write(f"@0\nD=A\n{self.push_stack}")
+    def writeFunction(self, function_name: str, nVars: int) -> None:
+        self.f_stream.write(f"({function_name})\n")
+        for _ in range(nVars):
+            self.f_stream.write(f"@0\nD=A\n{self.push_stack}")
 
-        def writeCall(self, function_name: str, nArgs: int) -> None:
-            return_address = f"{function_name}{self.count_cl}"
-            self.count_cl += 1
-            # return_addressを先に生成して、pushhしても6章のassemblerにおけるfirst_passで
-            # シンボルテーブルに登録されるため、問題ない
-            # 各種のアドレスをpushする。pushすることで、呼び出し先から触れない
-            self.f_stream.write(f"@{return_address}\nD=A\n{self.push_stack}\n")
-            self.f_stream.write(f"@LCL\nD=M\n{self.push_stack}\n")
-            self.f_stream.write(f"@ARG\nD=M\n{self.push_stack}\n")
-            self.f_stream.write(f"@THIS\nD=M\n{self.push_stack}\n")
-            self.f_stream.write(f"@THAT\nD=M\n{self.push_stack}\n")
-            # ARG/LCLは呼び出し先の関数ように設定する
-            self.f_stream.write(f"@SP\nD=M\n@5\nD=D-A\n@{nArgs}\nD=D-A\n@ARG\nM=D\n")
-            self.f_stream.write("@SP\nD=M\n@LCL\nM=D\n")
-            # 関数にジャンプ
-            self.f_stream.write(f"@{function_name}\n0;JMP\n")
-            # return_addressを追加
-            self.f_stream.write(f"({return_address})\n")
+    def writeCall(self, function_name: str, nArgs: int) -> None:
+        return_address = f"{function_name}{self.count_cl}"
+        self.count_cl += 1
+        # return_addressを先に生成して、pushhしても6章のassemblerにおけるfirst_passで
+        # シンボルテーブルに登録されるため、問題ない
+        # 各種のアドレスをpushする。pushすることで、呼び出し先から触れない
+        self.f_stream.write(f"@{return_address}\nD=A\n{self.push_stack}\n")
+        self.f_stream.write(f"@LCL\nD=M\n{self.push_stack}\n")
+        self.f_stream.write(f"@ARG\nD=M\n{self.push_stack}\n")
+        self.f_stream.write(f"@THIS\nD=M\n{self.push_stack}\n")
+        self.f_stream.write(f"@THAT\nD=M\n{self.push_stack}\n")
+        # ARG/LCLは呼び出し先の関数ように設定する
+        self.f_stream.write(f"@SP\nD=M\n@5\nD=D-A\n@{nArgs}\nD=D-A\n@ARG\nM=D\n")
+        self.f_stream.write("@SP\nD=M\n@LCL\nM=D\n")
+        # 関数にジャンプ
+        self.f_stream.write(f"@{function_name}\n0;JMP\n")
+        # return_addressを追加
+        self.f_stream.write(f"({return_address})\n")
 
-        def writeReturn(self) -> None:
-            # LCLをR13に一時保存する
-            self.f_stream.write("@LCL\nD=M\n@R13\nM=D\n")
-            # returnAddressをR14に一時保存
-            self.f_stream.write("@13\nD=M\n@5\nA=D-A\nD=M\n@R14\nM=D\n")
-            # *ARG = pop()
-            self.f_stream.write(f"{self.pop_stack}@ARG\nA=M\nM=D\n")
-            # SP = ARG + 1
-            self.f_stream.write("@ARG\nD=M+1\n@SP\nM=D\n")
-            # THAT = *(endFrame - 1)
-            self.f_stream.write("@R13\nD=M\n@1\nA=D-A\nD=M\n@THAT\nM=D\n")
-            # THIS = *(endFrame - 2)
-            self.f_stream.write("@R13\nD=M\n@2\nA=D-A\nD=M\n@THIS\nM=D\n")
-            # ARG = *(endFrame - 3)
-            self.f_stream.write("@R13\nD=M\n@3\nA=D-A\nD=M\n@ARG\nM=D\n")
-            # LCL = *(endFrame - 4)
-            self.f_stream.write("@R13\nD=M\n@4\nA=D-A\nD=M\n@LCL\nM=D\n")
-            # goto returnAddress
-            self.f_stream.write("@R14\nA=M\n0;JMP\n")
+    def writeReturn(self) -> None:
+        # LCLをR13に一時保存する
+        self.f_stream.write("@LCL\nD=M\n@R13\nM=D\n")
+        # returnAddressをR14に一時保存
+        self.f_stream.write("@13\nD=M\n@5\nA=D-A\nD=M\n@R14\nM=D\n")
+        # *ARG = pop()
+        self.f_stream.write(f"{self.pop_stack}@ARG\nA=M\nM=D\n")
+        # SP = ARG + 1
+        self.f_stream.write("@ARG\nD=M+1\n@SP\nM=D\n")
+        # THAT = *(endFrame - 1)
+        self.f_stream.write("@R13\nD=M\n@1\nA=D-A\nD=M\n@THAT\nM=D\n")
+        # THIS = *(endFrame - 2)
+        self.f_stream.write("@R13\nD=M\n@2\nA=D-A\nD=M\n@THIS\nM=D\n")
+        # ARG = *(endFrame - 3)
+        self.f_stream.write("@R13\nD=M\n@3\nA=D-A\nD=M\n@ARG\nM=D\n")
+        # LCL = *(endFrame - 4)
+        self.f_stream.write("@R13\nD=M\n@4\nA=D-A\nD=M\n@LCL\nM=D\n")
+        # goto returnAddress
+        self.f_stream.write("@R14\nA=M\n0;JMP\n")
 
     def debug(self, current_line: str) -> None:
         self.f_stream.write(f"// {current_line}\n")
