@@ -13,7 +13,9 @@ class CodeWriter:
         self.count_lt = 1
         self.count_cl = 1
 
-    # def command1(self, name: str) -> None:
+    def writeInit(self) -> None:
+        self.f_stream.write("@256\nD=A\n@SP\nM=D\n")
+        self.writeCall("Sys.init", 0)
 
     def writeAtithmetic(self, command: str) -> None:
         if command == "add":
@@ -53,7 +55,7 @@ class CodeWriter:
             elif segment == "pointer":
                 self.f_stream.write(f"@{3 + index}\nD=M\n{self.push_stack}")
             elif segment == "static":
-                self.f_stream.write(f"@{index + 16}\nD=M\n{self.push_stack}")
+                self.f_stream.write(f"@{self.filename}.{index}\nD=M\n{self.push_stack}")
             elif segment == "local":
                 self.f_stream.write("@LCL\nA=M\n")
                 for _ in range(index):
@@ -80,7 +82,7 @@ class CodeWriter:
             elif segment == "pointer":
                 self.f_stream.write(f"{self.pop_stack}@{3 + index}\nM=D\n")
             elif segment == "static":
-                self.f_stream.write(f"{self.pop_stack}@{index + 16}\nM=D\n")
+                self.f_stream.write(f"{self.pop_stack}@{self.filename}.{index}\nM=D\n")
             elif segment == "local":
                 self.f_stream.write(f"@{index}\nD=A\n@LCL\nD=D+M\n@R13\nM=D\n{self.pop_stack}@R13\nA=M\nM=D\n")
             elif segment == "argument":
@@ -150,3 +152,6 @@ class CodeWriter:
 
     def close(self) -> None:
         self.f_stream.close()
+
+    def setFileName(self, filename: str) -> None:
+        self.filename = filename

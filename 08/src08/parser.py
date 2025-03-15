@@ -8,7 +8,7 @@ class Parser:
     def __init__(self, path: str):
         with open(path) as f:
             self.lines = deque(f.readlines())
-
+        self.filename = str(path).split("/")[-1].split(".")[0]
         ## read the file
         self.current_line_number: int = 0
         self.arithmetic: Arithmetic = Arithmetic()
