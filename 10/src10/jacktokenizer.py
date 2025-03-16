@@ -1,10 +1,13 @@
 from collections import deque
 
+from src10.token import Token
+
 
 class JackAnalyzer:
     def __init__(self, path: str):
         with open(path) as f:
             self.lines = deque(f.readlines())
+            self.TOKEN = Token()
 
     def get_tokens(self):
         self.tokens = []
@@ -26,52 +29,21 @@ class JackAnalyzer:
         pass
 
     def tokenType(self):
-        if self.token in [
-            "class",
-            "constructor",
-            "function",
-            "method",
-            "field",
-            "static",
-            "var",
-            "int",
-            "char",
-            "boolean",
-            "void",
-            "true",
-            "false",
-            "null",
-            "this",
-            "let",
-            "do",
-            "if",
-            "else",
-            "while",
-            "return",
-        ]:
+        if self.token in self.TOKEN.keywords:
             return "KEYWORD"
-        elif self.token in [
-            "{",
-            "}",
-            "(",
-            ")",
-            "[",
-            "]",
-            ".",
-            ",",
-            ";",
-            "+",
-            "-",
-            "*",
-            "/",
-            "&",
-            "|",
-            "<",
-            ">",
-            "=",
-            "~",
-        ]:
+        elif self.token in self.TOKEN.symbols:
             return "SYMBOL"
+        elif isinstance(self.token, int):
+            return "INT_CONST"
+        elif (
+            self.token.startswith('"')
+            and self.token.endswith('"')
+            and '"' not in self.token[1:-1]
+            and "\n" not in self.token[1:-1]
+        ):
+            return "STRING_CONST"
+        elif self.token[0].isalpha() or self.token[0] == "_":
+            return "IDENTIFIER"
 
     def keyWord(self):
         if self.token == "class":
