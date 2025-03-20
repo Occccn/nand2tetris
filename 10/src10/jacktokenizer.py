@@ -28,12 +28,12 @@ class JackTokenizer:
                         self.tokens.append(line[current_point])
                         current_point += 1
                     elif line[current_point] == '"':
-                        current_point += 1
                         start_point = current_point
+                        current_point += 1
                         while line[current_point] != '"':
                             current_point += 1
-                        self.tokens.append(line[start_point : current_point - 1])
                         current_point += 1
+                        self.tokens.append(line[start_point:current_point])
                     elif line[current_point].isalpha() or line[current_point] == "_":
                         start_point = current_point
                         while line[current_point] != " " and line[current_point] not in self.TOKEN.symbols:
@@ -43,10 +43,9 @@ class JackTokenizer:
                         start_point = current_point
                         while line[current_point].isdigit():
                             current_point += 1
-                        self.tokens.append(int(line[start_point:current_point]))
+                        self.tokens.append(f"{int(line[start_point:current_point])}")
                     else:
                         current_point += 1
-        return self.tokens
 
     def HasmoreTokens(self):
         if len(self.tokens) == 0:
@@ -62,8 +61,6 @@ class JackTokenizer:
             return "KEYWORD"
         elif self.current_token in self.TOKEN.symbols:
             return "SYMBOL"
-        elif isinstance(self.token, int):
-            return "INT_CONST"
         elif (
             self.current_token.startswith('"')
             and self.current_token.endswith('"')
@@ -73,6 +70,8 @@ class JackTokenizer:
             return "STRING_CONST"
         elif self.current_token[0].isalpha() or self.current_token[0] == "_":
             return "IDENTIFIER"
+        else:
+            return "INT_CONST"
 
     def keyWord(self):
         if self.current_token == "class":
@@ -125,7 +124,7 @@ class JackTokenizer:
         return "identifier"
 
     def intVal(self) -> int:
-        return self.current_token
+        return int(self.current_token)
 
     def stringVal(self) -> str:
         return self.current_token
