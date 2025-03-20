@@ -29,7 +29,7 @@ class Token:
             "return",
         ]
     )
-    symbol: List[str] = dataclasses.field(
+    symbols: List[str] = dataclasses.field(
         default_factory=lambda: [
             "{",
             "}",
