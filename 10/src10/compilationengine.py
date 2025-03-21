@@ -1,6 +1,17 @@
+from src10.jackanalyzer import JackAnalyzer
+
+
 class CompilationEngine:
     def __init__(self, input_file, output_file):
-        pass
+        self.jackanalyzer = JackAnalyzer(input_file)
+        self.jackanalyzer.get_tokens()
+        self.jackanalyzer.advance()
+        self.jackanalyzer.tokenType()
+        self.f = open(output_file, "w")
+
+    def run(self):
+        self.compileClass()
+        self.f.close()
 
     def compileClass(self):
         pass
