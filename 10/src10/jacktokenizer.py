@@ -127,4 +127,4 @@ class JackTokenizer:
         return int(self.current_token)
 
     def stringVal(self) -> str:
-        return self.current_token
+        return self.current_token[1:-1]
