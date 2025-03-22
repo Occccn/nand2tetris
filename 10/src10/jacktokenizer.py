@@ -9,7 +9,7 @@ class JackTokenizer:
             self.lines = deque(f.readlines())
             self.TOKEN = Token()
 
-    def get_tokens(self):
+    def get_tokens(self) -> None:
         """tokkenのリストを作成する
 
         Returns:
@@ -47,33 +47,33 @@ class JackTokenizer:
                     else:
                         current_point += 1
 
-    def HasmoreTokens(self):
+    def HasmoreTokens(self) -> bool:
         if len(self.tokens) == 0:
             return False
         else:
             return True
 
-    def advance(self):
+    def advance(self) -> None:
         self.current_token = self.tokens.pop(0)
 
-    def tokenType(self):
+    def tokenType(self) -> str:
         if self.current_token in self.TOKEN.keywords:
-            return "KEYWORD"
+            return "keyword"
         elif self.current_token in self.TOKEN.symbols:
-            return "SYMBOL"
+            return "symbol"
         elif (
             self.current_token.startswith('"')
             and self.current_token.endswith('"')
             and '"' not in self.current_token[1:-1]
             and "\n" not in self.current_token[1:-1]
         ):
-            return "STRING_CONST"
+            return "string_const"
         elif self.current_token[0].isalpha() or self.current_token[0] == "_":
-            return "IDENTIFIER"
+            return "identifier"
         else:
-            return "INT_CONST"
+            return "int_const"
 
-    def keyWord(self):
+    def keyWord(self) -> str:
         if self.current_token == "class":
             return "CLASS"
         elif self.current_token == "constructor":
@@ -116,11 +116,12 @@ class JackTokenizer:
             return "WHILE"
         elif self.current_token == "return":
             return "RETURN"
+        raise ValueError(f"Invalid token: {self.current_token}")
 
     def symbol(self) -> str:
         return self.current_token
 
-    def identifier(self):
+    def identifier(self) -> str:
         return "identifier"
 
     def intVal(self) -> int:
