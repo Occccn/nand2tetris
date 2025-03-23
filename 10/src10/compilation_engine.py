@@ -43,7 +43,7 @@ class CompilationEngine:
         self._write_markup_no_token("classVarDec", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword(["static", "field"])
-        self.compileKeyword(["int", "char", "boolean", "Square", "SquareGame"])
+        self.compileType(["int", "char", "boolean"])
         self.compileIdentifier()
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
@@ -57,7 +57,7 @@ class CompilationEngine:
         self._write_markup_no_token("subroutineDec", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword(["constructor", "function", "method"])
-        self.compileKeyword(["void", "int", "char", "boolean", "Square", "SquareGame"])
+        self.compileType(["void", "int", "char", "boolean"])
         self.compileIdentifier()
         self.compileSymbol("(")
         self.compileParameterList()
@@ -96,7 +96,7 @@ class CompilationEngine:
         self._write_markup_no_token("varDec", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("var")
-        self.compileKeyword(["int", "char", "boolean", "Square", "SquareGame"])
+        self.compileType(["int", "char", "boolean"])
         self.compileIdentifier()
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
@@ -254,9 +254,7 @@ class CompilationEngine:
     def compileKeyword(self, correct_token: list[str] | str):
         """keywordをコンパイルする"""
         if isinstance(correct_token, list):
-            if (self.jacktokenizer.current_token in correct_token) & (
-                self.jacktokenizer.tokenType() in ["keyword", "identifier"]
-            ):
+            if (self.jacktokenizer.current_token in correct_token) & (self.jacktokenizer.tokenType() == "keyword"):
                 self._write_markup(self.jacktokenizer.tokenType(), self.jacktokenizer.current_token, self.indent)
                 self.jacktokenizer.advance()
             else:
@@ -288,3 +286,10 @@ class CompilationEngine:
                 self.jacktokenizer.advance()
         else:
             raise ValueError(f"expected {correct_token} but got {self.jacktokenizer.current_token}")
+
+    def compileType(self, correct_token: list[str]):
+        """typeをコンパイルする"""
+        if self.jacktokenizer.current_token in correct_token:
+            self.compileKeyword(correct_token)
+        else:
+            self.compileIdentifier()

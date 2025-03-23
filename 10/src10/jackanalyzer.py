@@ -9,7 +9,9 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 def main(dir_name: str) -> None:
     jack_files = list(BASE_DIR.glob(f"jack/{dir_name}/*.jack"))
     for jack_file in jack_files:
-        output_file = jack_file.with_suffix(".tmp")
+        output_file = jack_file.with_suffix(".xml")
+        file_name = output_file.name.replace(output_file.name.split(".")[0], output_file.name.split(".")[0] + "Test")
+        output_file = output_file.with_name(file_name)
         compilation_engine = CompilationEngine(jack_file, output_file)
         compilation_engine.run()
 
