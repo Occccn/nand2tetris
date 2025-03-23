@@ -1,6 +1,6 @@
 from collections import deque
 
-from src10.token import Token
+from src10.tokens import Token
 
 
 class JackTokenizer:
@@ -21,7 +21,7 @@ class JackTokenizer:
             if line.startswith("//") or line == "\n" or line == "" or (line.startswith("/*") and line.endswith("*/")):
                 continue
             else:
-                line = line.strip()
+                line = line.split("//")[0].split("/*")[0]
                 current_point = 0
                 while current_point < len(line):
                     if line[current_point] in self.TOKEN.symbols:

@@ -1,6 +1,6 @@
 import pytest
 from src10.jacktokenizer import JackTokenizer
-from src10.token import Token
+from src10.tokens import Token
 
 correct_tokens = [
     "class",
