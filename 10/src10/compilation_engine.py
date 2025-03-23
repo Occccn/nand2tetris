@@ -215,7 +215,7 @@ class CompilationEngine:
         self._write_markup_no_token("expression", self.indent, closed=True)
 
     def compileTerm(self):
-        """簡易版をまず作る。expressionには定数、変数のみを扱う"""
+        """termをコンパイルする"""
         self._write_markup_no_token("term", self.indent, closed=False)
         self.indent += 1
         if self.jacktokenizer.tokenType() == "int_const":
@@ -232,9 +232,15 @@ class CompilationEngine:
                 self.compileSymbol("[")
                 self.compileExpression()
                 self.compileSymbol("]")
+            elif self.jacktokenizer.current_token in ["(", "."]:
+                self.compileSubroutineCall()
         elif self.jacktokenizer.current_token in ["-", "~"]:
             self.compileSymbol(self.jacktokenizer.current_token)
             self.compileTerm()
+        elif self.jacktokenizer.current_token == "(":
+            self.compileSymbol("(")
+            self.compileExpression()
+            self.compileSymbol(")")
         else:
             raise ValueError(f"expected term but got {self.jacktokenizer.current_token}")
         self.indent -= 1
