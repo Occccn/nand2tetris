@@ -6,8 +6,28 @@ from src10.tokens import Token
 class JackTokenizer:
     def __init__(self, path: str):
         with open(path) as f:
-            self.lines = deque(f.readlines())
-            self.TOKEN = Token()
+            self.lines = self._skip_comment(f.readlines())
+        self.TOKEN = Token()
+
+    def _skip_comment(self, lines: list[str]) -> deque:
+        """コメントをスキップする"""
+        outputs = []
+        comment_start = False
+        for line in lines:
+            if line.startswith("//") or line == "\n" or line == "":
+                pass
+            elif ("/*" in line or "/**" in line) and "*/" not in line:
+                comment_start = True
+            elif "*/" in line:
+                comment_start = False
+                lines.append(line.split("*/")[1])
+            elif comment_start:
+                pass
+            elif "//" in line:
+                outputs.append(line.split("//")[0])
+            else:
+                outputs.append(line)
+        return deque(outputs)
 
     def get_tokens(self) -> None:
         """tokkenのリストを作成する
@@ -18,34 +38,30 @@ class JackTokenizer:
         self.tokens = []
         for line in self.lines:
             line = line.strip()
-            if line.startswith("//") or line == "\n" or line == "" or (line.startswith("/*") and line.endswith("*/")):
-                continue
-            else:
-                line = line.split("//")[0].split("/*")[0]
-                current_point = 0
-                while current_point < len(line):
-                    if line[current_point] in self.TOKEN.symbols:
-                        self.tokens.append(line[current_point])
+            current_point = 0
+            while current_point < len(line):
+                if line[current_point] in self.TOKEN.symbols:
+                    self.tokens.append(line[current_point])
+                    current_point += 1
+                elif line[current_point] == '"':
+                    start_point = current_point
+                    current_point += 1
+                    while line[current_point] != '"':
                         current_point += 1
-                    elif line[current_point] == '"':
-                        start_point = current_point
+                    current_point += 1
+                    self.tokens.append(line[start_point:current_point])
+                elif line[current_point].isalpha() or line[current_point] == "_":
+                    start_point = current_point
+                    while line[current_point] != " " and line[current_point] not in self.TOKEN.symbols:
                         current_point += 1
-                        while line[current_point] != '"':
-                            current_point += 1
+                    self.tokens.append(line[start_point:current_point])
+                elif line[current_point].isdigit():
+                    start_point = current_point
+                    while line[current_point].isdigit():
                         current_point += 1
-                        self.tokens.append(line[start_point:current_point])
-                    elif line[current_point].isalpha() or line[current_point] == "_":
-                        start_point = current_point
-                        while line[current_point] != " " and line[current_point] not in self.TOKEN.symbols:
-                            current_point += 1
-                        self.tokens.append(line[start_point:current_point])
-                    elif line[current_point].isdigit():
-                        start_point = current_point
-                        while line[current_point].isdigit():
-                            current_point += 1
-                        self.tokens.append(f"{int(line[start_point:current_point])}")
-                    else:
-                        current_point += 1
+                    self.tokens.append(f"{int(line[start_point:current_point])}")
+                else:
+                    current_point += 1
 
     def HasmoreTokens(self) -> bool:
         if len(self.tokens) == 0:

@@ -1,3 +1,5 @@
+from collections import deque
+
 import pytest
 from src10.jacktokenizer import JackTokenizer
 from src10.tokens import Token
@@ -88,7 +90,11 @@ def jacktokenizer():
                 "class Main {",
                 "// test",
                 "/* test */",
-                "    function void main() {",
+                "/** test",
+                "* test",
+                "dddd",
+                "*/",
+                "    function void main() { // test",
                 "        var int x;",
                 "        let x = 1;",
                 '        let x = "a";',
@@ -102,7 +108,60 @@ def jacktokenizer():
     return MockJackTokenizer("")
 
 
+def test_skip_comments(jacktokenizer):
+    lines = [
+        "class Main {",
+        "// test",
+        "/* test */",
+        "/** test",
+        "* test",
+        "dddd",
+        "*/",
+        "    function void main() { // test",
+        "        var int x;",
+        "        let x = 1;",
+        '        let x = "a";',
+        "        do Output.printInt(x);",
+        "        return;",
+        "    }",
+        "}",
+    ]
+    lines = jacktokenizer._skip_comment(lines)
+    assert lines == deque(
+        [
+            "class Main {",
+            "    function void main() { ",
+            "        var int x;",
+            "        let x = 1;",
+            '        let x = "a";',
+            "        do Output.printInt(x);",
+            "        return;",
+            "    }",
+            "}",
+        ]
+    )
+
+
 def test_get_tokens(jacktokenizer):
+    lines = [
+        "class Main {",
+        "// test",
+        "/* test */",
+        "/** test",
+        "/** test */",
+        "* test",
+        "dddd",
+        "*/",
+        "    function void main() { // test",
+        "        var int x;",
+        "        let x = 1;",
+        '        let x = "a";',
+        "        do Output.printInt(x);",
+        "        return;",
+        "    }",
+        "}",
+    ]
+    jacktokenizer.lines = jacktokenizer._skip_comment(lines)
     jacktokenizer.get_tokens()
     assert jacktokenizer.tokens == correct_tokens
 
