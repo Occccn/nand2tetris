@@ -287,6 +287,14 @@ class CompilationEngine:
     def compileSymbol(self, correct_token: str):
         """symbolをコンパイルする"""
         if (self.jacktokenizer.current_token == correct_token) & (self.jacktokenizer.tokenType() == "symbol"):
+            if correct_token == "<":
+                correct_token = "&lt;"
+            elif correct_token == ">":
+                correct_token = "&gt;"
+            elif correct_token == "&":
+                correct_token = "&amp;"
+            elif correct_token == '"':
+                correct_token = "&quot;"
             self._write_markup("symbol", correct_token, self.indent)
             if self.jacktokenizer.HasmoreTokens():
                 self.jacktokenizer.advance()
