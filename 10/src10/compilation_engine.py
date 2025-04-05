@@ -128,6 +128,7 @@ class CompilationEngine:
         self._write_markup_no_token("doStatement", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("do")
+        self.compileIdentifier()
         self.compileSubroutineCall()
         self.compileSymbol(";")
         self.indent -= 1
@@ -135,7 +136,7 @@ class CompilationEngine:
 
     def compileSubroutineCall(self):
         """subroutineCallをコンパイルする"""
-        self.compileIdentifier()
+        # self.compileIdentifier()
         if self.jacktokenizer.current_token == ".":
             self.compileSymbol(".")
             self.compileIdentifier()
@@ -222,7 +223,7 @@ class CompilationEngine:
             self._write_markup("integerConstant", self.jacktokenizer.current_token, self.indent)
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "string_const":
-            self._write_markup("stringConstant", self.jacktokenizer.current_token, self.indent)
+            self._write_markup("stringConstant", self.jacktokenizer.current_token[1:-1], self.indent)
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "keyword":
             self.compileKeyword(["true", "false", "null", "this"])
