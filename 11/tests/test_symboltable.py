@@ -4,11 +4,7 @@ from src11.symboltable import SymbolTable
 
 @pytest.fixture()
 def symboltable():
-    class MockSymbolTable(SymbolTable):
-        def __init__(self):
-            self.symbol_table = {}
-
-    return MockSymbolTable
+    return SymbolTable()
 
 
 class TestReset:
