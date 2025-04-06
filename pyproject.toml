@@ -40,6 +40,7 @@ packages = ["06/src06","07/src07","08/src08","10/src10"]
 "src07" = "07/src07"
 "src08" = "08/src08"
 "src10" = "10/src10"
+"src11" = "11/src11"
 
 
 [tool.ruff]
