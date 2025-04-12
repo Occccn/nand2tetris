@@ -1,4 +1,5 @@
-from src10.jacktokenizer import JackTokenizer
+from src11.jacktokenizer import JackTokenizer
+from src11.symboltable import SymbolTable
 
 
 class CompilationEngine:
@@ -9,10 +10,15 @@ class CompilationEngine:
         self.jacktokenizer.tokenType()
         self.f = open(output_file, "w")
         self.indent = 0
+        self.class_table = SymbolTable()
 
     def run(self) -> None:
         self.compileClass()
         self.f.close()
+        # check class_table
+        print("class_table")
+        print(self.class_table.symbol_table)
+        print(self.class_table._counters)
 
     def _write_markup(self, token_type: str, token: str, indent: int) -> None:
         self.f.write(f"{'  ' * indent}<{token_type}> {token} </{token_type}>\n")
@@ -42,18 +48,23 @@ class CompilationEngine:
         """classVarDecをコンパイルする"""
         self._write_markup_no_token("classVarDec", self.indent, closed=False)
         self.indent += 1
+        _keyword = self.jacktokenizer.keyWord()
         self.compileKeyword(["static", "field"])
+        _type = self.jacktokenizer.current_token
         self.compileType(["int", "char", "boolean"])
+        self.class_table.define(self.jacktokenizer.current_token, _type, _keyword)
         self.compileIdentifier()
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
             self.compileIdentifier()
+            self.class_table.define(self.jacktokenizer.current_token, _type, _keyword)
         self.compileSymbol(";")
         self.indent -= 1
         self._write_markup_no_token("classVarDec", self.indent, closed=True)
 
     def compileSubroutine(self) -> None:
         """subroutineをコンパイルする"""
+        self.subroutine_table = SymbolTable()
         self._write_markup_no_token("subroutineDec", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword(["constructor", "function", "method"])
@@ -65,13 +76,19 @@ class CompilationEngine:
         self.compileSubroutineBody()
         self.indent -= 1
         self._write_markup_no_token("subroutineDec", self.indent, closed=True)
+        # check subroutine_table
+        print("subroutine_table")
+        print(self.subroutine_table.symbol_table)
+        print(self.subroutine_table._counters)
 
     def compileParameterList(self):
         """parameterListをコンパイルする"""
         self._write_markup_no_token("parameterList", self.indent, closed=False)
         self.indent += 1
         while self.jacktokenizer.current_token != ")":
-            self.compileKeyword(["int", "char", "boolean"])
+            _keyword = self.jacktokenizer.current_token
+            self.compileType(["int", "char", "boolean"])
+            self.subroutine_table.define(self.jacktokenizer.current_token, _keyword, "ARG")
             self.compileIdentifier()
             if self.jacktokenizer.current_token == ",":
                 self.compileSymbol(",")
@@ -96,10 +113,13 @@ class CompilationEngine:
         self._write_markup_no_token("varDec", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("var")
+        _type = self.jacktokenizer.current_token
         self.compileType(["int", "char", "boolean"])
+        self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
         self.compileIdentifier()
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
+            self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
             self.compileIdentifier()
         self.compileSymbol(";")
         self.indent -= 1
