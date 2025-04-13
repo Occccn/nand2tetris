@@ -34,7 +34,7 @@ class CompilationEngine:
         self._write_markup_no_token("class", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("class")
-        self.compileIdentifier()
+        self.compileIdentifier(category="class", usage=False)
         self.compileSymbol("{")
         while self.jacktokenizer.current_token in ["static", "field"]:
             self.compileClassVarDec()
@@ -53,11 +53,13 @@ class CompilationEngine:
         _type = self.jacktokenizer.current_token
         self.compileType(["int", "char", "boolean"])
         self.class_table.define(self.jacktokenizer.current_token, _type, _keyword)
-        self.compileIdentifier()
+        index = self.class_table.indexOf(self.jacktokenizer.current_token)
+        self.compileIdentifier(category=_keyword, usage=True, index=index)
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
-            self.compileIdentifier()
             self.class_table.define(self.jacktokenizer.current_token, _type, _keyword)
+            index = self.class_table.indexOf(self.jacktokenizer.current_token)
+            self.compileIdentifier(category=_keyword, usage=True, index=index)
         self.compileSymbol(";")
         self.indent -= 1
         self._write_markup_no_token("classVarDec", self.indent, closed=True)
@@ -69,7 +71,7 @@ class CompilationEngine:
         self.indent += 1
         self.compileKeyword(["constructor", "function", "method"])
         self.compileType(["void", "int", "char", "boolean"])
-        self.compileIdentifier()
+        self.compileIdentifier(category="subroutine", usage=False)
         self.compileSymbol("(")
         self.compileParameterList()
         self.compileSymbol(")")
@@ -89,7 +91,8 @@ class CompilationEngine:
             _keyword = self.jacktokenizer.current_token
             self.compileType(["int", "char", "boolean"])
             self.subroutine_table.define(self.jacktokenizer.current_token, _keyword, "ARG")
-            self.compileIdentifier()
+            index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
+            self.compileIdentifier(category="ARG", usage=False, index=index)
             if self.jacktokenizer.current_token == ",":
                 self.compileSymbol(",")
         self.indent -= 1
@@ -116,11 +119,13 @@ class CompilationEngine:
         _type = self.jacktokenizer.current_token
         self.compileType(["int", "char", "boolean"])
         self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
-        self.compileIdentifier()
+        index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
+        self.compileIdentifier(category="VAR", usage=True, index=index)
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
             self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
-            self.compileIdentifier()
+            index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
+            self.compileIdentifier(category="VAR", usage=True, index=index)
         self.compileSymbol(";")
         self.indent -= 1
         self._write_markup_no_token("varDec", self.indent, closed=True)
@@ -148,7 +153,7 @@ class CompilationEngine:
         self._write_markup_no_token("doStatement", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("do")
-        self.compileIdentifier()
+        self.compileIdentifier(category="subroutine", usage=False)
         self.compileSubroutineCall()
         self.compileSymbol(";")
         self.indent -= 1
@@ -159,7 +164,7 @@ class CompilationEngine:
         # self.compileIdentifier()
         if self.jacktokenizer.current_token == ".":
             self.compileSymbol(".")
-            self.compileIdentifier()
+            self.compileIdentifier(category="subroutine", usage=False)
         self.compileSymbol("(")
         self.compileExpressionList()
         self.compileSymbol(")")
@@ -169,7 +174,7 @@ class CompilationEngine:
         self._write_markup_no_token("letStatement", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("let")
-        self.compileIdentifier()
+        self.compileIdentifier(category="VAR", usage=False)
         if self.jacktokenizer.current_token == "[":
             self.compileSymbol("[")
             self.compileExpression()
@@ -248,7 +253,7 @@ class CompilationEngine:
         elif self.jacktokenizer.tokenType() == "keyword":
             self.compileKeyword(["true", "false", "null", "this"])
         elif self.jacktokenizer.tokenType() == "identifier":
-            self.compileIdentifier()
+            self.compileIdentifier(category="VAR", usage=False)
             if self.jacktokenizer.current_token == "[":
                 self.compileSymbol("[")
                 self.compileExpression()
@@ -293,14 +298,18 @@ class CompilationEngine:
             else:
                 raise ValueError(f"expected {correct_token} but got {self.jacktokenizer.current_token}")
 
-    def compileIdentifier(self):
+    def compileIdentifier(self, category: str, usage: bool, index: int | None = None):
         """identifierをコンパイルする
 
         Raises:
             ValueError: _description_
         """
         if self.jacktokenizer.tokenType() == "identifier":
-            self._write_markup("identifier", self.jacktokenizer.current_token, self.indent)
+            self._write_markup(
+                "identifier",
+                f"{self.jacktokenizer.current_token} category:{category} usage:{usage} index:{index}",
+                self.indent,
+            )
             self.jacktokenizer.advance()
         else:
             raise ValueError(f"expected identifier but got {self.jacktokenizer.current_token}")
@@ -327,4 +336,4 @@ class CompilationEngine:
         if self.jacktokenizer.current_token in correct_token:
             self.compileKeyword(correct_token)
         else:
-            self.compileIdentifier()
+            self.compileIdentifier(category="class", usage=False)
