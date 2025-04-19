@@ -10,33 +10,33 @@ class VMWriter:
         segment: Literal["CONSTANT", "ARGUMENT", "LOCAL", "STATIC", "THIS", "THAT", "POINTER", "TEMP"],
         index: int,
     ) -> None:
-        pass
+        self.f.write(f"push {segment} {index}\n")
 
     def write_pop(
         self, segment: Literal["ARGUMENT", "LOCAL", "STATIC", "THIS", "THAT", "POINTER", "TEMP"], index: int
     ) -> None:
-        pass
+        self.f.write(f"pop {segment} {index}\n")
 
     def write_arithmetic(self, command: Literal["ADD", "SUB", "NEG", "EQ", "GT", "LT", "AND", "OR", "NOT"]) -> None:
-        pass
+        self.f.write(f"{command.lower()}\n")
 
     def write_label(self, label: str) -> None:
-        pass
+        self.f.write(f"label {label}\n")
 
     def write_goto(self, label: str) -> None:
-        pass
+        self.f.write(f"goto {label}\n")
 
     def write_if(self, label: str) -> None:
-        pass
+        self.f.write(f"if-goto {label}\n")
 
     def write_call(self, name: str, n_args: int) -> None:
-        pass
+        self.f.write(f"call {name} {n_args}\n")
 
     def write_function(self, name: str, n_locals: int) -> None:
-        pass
+        self.f.write(f"function {name} {n_locals}\n")
 
     def write_return(self) -> None:
-        pass
+        self.f.write("return\n")
 
     def close(self) -> None:
         self.f.close()
