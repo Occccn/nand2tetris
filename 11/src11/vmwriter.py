@@ -10,12 +10,12 @@ class VMWriter:
         segment: Literal["CONSTANT", "ARGUMENT", "LOCAL", "STATIC", "THIS", "THAT", "POINTER", "TEMP"],
         index: int,
     ) -> None:
-        self.f.write(f"push {segment} {index}\n")
+        self.f.write(f"push {segment.lower()} {index}\n")
 
     def write_pop(
         self, segment: Literal["ARGUMENT", "LOCAL", "STATIC", "THIS", "THAT", "POINTER", "TEMP"], index: int
     ) -> None:
-        self.f.write(f"pop {segment} {index}\n")
+        self.f.write(f"pop {segment.lower()} {index}\n")
 
     def write_arithmetic(self, command: Literal["ADD", "SUB", "NEG", "EQ", "GT", "LT", "AND", "OR", "NOT"]) -> None:
         self.f.write(f"{command.lower()}\n")

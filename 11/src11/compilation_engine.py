@@ -1,5 +1,6 @@
 from src11.jacktokenizer import JackTokenizer
 from src11.symboltable import SymbolTable
+from src11.vmwriter import VMWriter
 
 
 class CompilationEngine:
@@ -11,14 +12,11 @@ class CompilationEngine:
         self.f = open(output_file, "w")
         self.indent = 0
         self.class_table = SymbolTable()
+        self.vm_writer = VMWriter(output_file.with_suffix(".vm"))
 
     def run(self) -> None:
         self.compileClass()
         self.f.close()
-        # check class_table
-        print("class_table")
-        print(self.class_table.symbol_table)
-        print(self.class_table._counters)
 
     def _write_markup(self, token_type: str, token: str, indent: int) -> None:
         self.f.write(f"{'  ' * indent}<{token_type}> {token} </{token_type}>\n")
@@ -78,10 +76,6 @@ class CompilationEngine:
         self.compileSubroutineBody()
         self.indent -= 1
         self._write_markup_no_token("subroutineDec", self.indent, closed=True)
-        # check subroutine_table
-        print("subroutine_table")
-        print(self.subroutine_table.symbol_table)
-        print(self.subroutine_table._counters)
 
     def compileParameterList(self):
         """parameterListをコンパイルする"""
@@ -92,6 +86,7 @@ class CompilationEngine:
             self.compileType(["int", "char", "boolean"])
             self.subroutine_table.define(self.jacktokenizer.current_token, _keyword, "ARG")
             index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
+            self.vm_writer.write_push("ARGUMENT", index)
             self.compileIdentifier(category="ARG", usage=False, index=index)
             if self.jacktokenizer.current_token == ",":
                 self.compileSymbol(",")
@@ -246,6 +241,7 @@ class CompilationEngine:
         self.indent += 1
         if self.jacktokenizer.tokenType() == "int_const":
             self._write_markup("integerConstant", self.jacktokenizer.current_token, self.indent)
+            self.vm_writer.write_push("CONSTANT", int(self.jacktokenizer.current_token))
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "string_const":
             self._write_markup("stringConstant", self.jacktokenizer.current_token[1:-1], self.indent)
