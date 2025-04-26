@@ -38,5 +38,9 @@ class VMWriter:
     def write_return(self) -> None:
         self.f.write("return\n")
 
+    def write_char(self, char: str) -> None:
+        self.f.write(f"push constant {ord(char)}\n")
+        self.f.write("call String.appendChar 2\n")
+
     def close(self) -> None:
         self.f.close()

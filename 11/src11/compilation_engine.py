@@ -240,14 +240,28 @@ class CompilationEngine:
         self._write_markup_no_token("term", self.indent, closed=False)
         self.indent += 1
         if self.jacktokenizer.tokenType() == "int_const":
-            self._write_markup("integerConstant", self.jacktokenizer.current_token, self.indent)
             self.vm_writer.write_push("CONSTANT", int(self.jacktokenizer.current_token))
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "string_const":
+            self.vm_writer.write_push("CONSTANT", len(self.jacktokenizer.current_token))
+            self.vm_writer.write_call("String.new", 1)
+            for i in range(len(self.jacktokenizer.current_token)):
+                self.vm_writer.write_char(self.jacktokenizer.current_token[i])
             self._write_markup("stringConstant", self.jacktokenizer.current_token[1:-1], self.indent)
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "keyword":
-            self.compileKeyword(["true", "false", "null", "this"])
+            keyword = self.jacktokenizer.current_token
+            if keyword == "true":
+                self.vm_writer.write_push("CONSTANT", 0)
+                self.vm_writer.write_arithmetic("NOT")  # 0を反転して-1（すべてのビットが1）にする
+            elif keyword == "false":
+                self.vm_writer.write_push("CONSTANT", 0)
+            elif keyword == "null":
+                self.vm_writer.write_push("CONSTANT", 0)
+            elif keyword == "this":
+                self.vm_writer.write_push("POINTER", 0)
+            self.jacktokenizer.advance()
+
         elif self.jacktokenizer.tokenType() == "identifier":
             self.compileIdentifier(category="VAR", usage=False)
             if self.jacktokenizer.current_token == "[":

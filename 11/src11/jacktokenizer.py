@@ -29,6 +29,10 @@ class JackTokenizer:
                 outputs.append(line)
         return deque(outputs)
 
+    def next_token(self) -> str:
+        """次のトークンを取得するだけで、現在のトークンは変更しない。また次のトークンは削除しない"""
+        return self.tokens[0]
+
     def get_tokens(self) -> None:
         """tokkenのリストを作成する
 
