@@ -86,7 +86,6 @@ class CompilationEngine:
             self.compileType(["int", "char", "boolean"])
             self.subroutine_table.define(self.jacktokenizer.current_token, _keyword, "ARG")
             index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
-            self.vm_writer.write_push("ARGUMENT", index)
             self.compileIdentifier(category="ARG", usage=False, index=index)
             if self.jacktokenizer.current_token == ",":
                 self.compileSymbol(",")
@@ -164,21 +163,51 @@ class CompilationEngine:
         self.compileExpressionList()
         self.compileSymbol(")")
 
-    def compileLet(self):
-        """letをコンパイルする"""
-        self._write_markup_no_token("letStatement", self.indent, closed=False)
-        self.indent += 1
-        self.compileKeyword("let")
-        self.compileIdentifier(category="VAR", usage=False)
-        if self.jacktokenizer.current_token == "[":
-            self.compileSymbol("[")
-            self.compileExpression()
-            self.compileSymbol("]")
-        self.compileSymbol("=")
-        self.compileExpression()
-        self.compileSymbol(";")
-        self.indent -= 1
-        self._write_markup_no_token("letStatement", self.indent, closed=True)
+
+def compileLet(self):
+    """letをコンパイルする"""
+    self._write_markup_no_token("letStatement", self.indent, closed=False)
+    self.indent += 1
+
+    # 最初のトークンは "let" なので、これを処理
+    self.compileKeyword("let")
+
+    # 変数名の取得と情報の取得
+    var_name = self.jacktokenizer.current_token
+
+    # シンボルテーブルから変数情報を取得
+    kind = self.subroutine_table.kindOf(var_name) or self.class_table.kindOf(var_name)
+    index = self.subroutine_table.indexOf(var_name) or self.class_table.indexOf(var_name)
+    segment = self._kind_to_segment(kind)
+
+    # 識別子の処理（XML出力のみ）
+    self.compileIdentifier(category=kind, usage=False, index=index)
+
+    # 配列への代入かどうかを判断
+    is_array = False
+    if self.jacktokenizer.current_token == "[":
+        is_array = True
+        # 配列のベースアドレスをプッシュ
+        self.vm_writer.write_push(segment, index)
+
+        self.compileSymbol("[")
+        self.compileExpression()  # インデックス値をスタックに積む
+        self.compileSymbol("]")
+
+        # ベースアドレス + インデックスを計算
+        self.vm_writer.write_arithmetic("ADD")
+
+    self.compileSymbol("=")
+    self.compileExpression()  # 代入する値をスタックに積む
+
+    # 代入処理（ここがポイント）
+    if is_array:
+        # 配列要素への代入の場合
+        # that 0 を使った間接参照でメモリに書き込む
+        self.vm_writer.write_pop("THAT", 0)
+    else:
+        # 通常変数への代入の場合
+        self.vm_writer.write_pop(segment, index)
 
     def compileWhile(self):
         """whileをコンパイルする"""
@@ -243,10 +272,11 @@ class CompilationEngine:
             self.vm_writer.write_push("CONSTANT", int(self.jacktokenizer.current_token))
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "string_const":
-            self.vm_writer.write_push("CONSTANT", len(self.jacktokenizer.current_token))
+            string_content = self.jacktokenizer.current_token[1:-1]
+            self.vm_writer.write_push("CONSTANT", len(string_content))
             self.vm_writer.write_call("String.new", 1)
-            for i in range(len(self.jacktokenizer.current_token)):
-                self.vm_writer.write_char(self.jacktokenizer.current_token[i])
+            for char in string_content:
+                self.vm_writer.write_char(char)
             self._write_markup("stringConstant", self.jacktokenizer.current_token[1:-1], self.indent)
             self.jacktokenizer.advance()
         elif self.jacktokenizer.tokenType() == "keyword":
@@ -311,13 +341,49 @@ class CompilationEngine:
     def compileIdentifier(self, category: str, usage: bool, index: int | None = None):
         """identifierをコンパイルする
 
-        Raises:
-            ValueError: _description_
+        Args:
+            category: 変数のカテゴリ（"class", "subroutine", "STATIC", "FIELD", "ARG", "VAR"など）
+            usage: 値の使用（True）か宣言（False）か
+            index: 既知の場合は変数のインデックス
         """
         if self.jacktokenizer.tokenType() == "identifier":
+            var_name = self.jacktokenizer.current_token
+
+            # 変数の場合（クラスやサブルーチン名ではない場合）
+            if category not in ["class", "subroutine"]:
+                # 変数が使用される場合（値を取得する場合）
+                if usage:
+                    # indexが指定されていない場合は、シンボルテーブルから取得
+                    if index is None:
+                        # まずサブルーチンのシンボルテーブルを確認
+                        kind = self.subroutine_table.kindOf(var_name)
+                        if kind is not None:
+                            index = self.subroutine_table.indexOf(var_name)
+                        else:
+                            # サブルーチンテーブルになければクラステーブルを確認
+                            kind = self.class_table.kindOf(var_name)
+                            index = self.class_table.indexOf(var_name)
+                            if kind is None:
+                                raise ValueError(f"変数 {var_name} がシンボルテーブルに見つかりません")
+                    else:
+                        # indexが指定されている場合はcategoryを使用
+                        kind = category
+
+                    # 変数の種類からVMセグメントを取得してpushコマンドを生成
+                    segment = self._kind_to_segment(kind)
+                    self.vm_writer.write_push(segment, index)
+
+            # シンボルテーブル情報を含めたXML出力
+            kind_info = self.subroutine_table.kindOf(var_name) or self.class_table.kindOf(var_name) or category
+            index_info = (
+                index
+                if index is not None
+                else (self.subroutine_table.indexOf(var_name) or self.class_table.indexOf(var_name))
+            )
+
             self._write_markup(
                 "identifier",
-                f"{self.jacktokenizer.current_token} category:{category} usage:{usage} index:{index}",
+                f"{var_name} category:{kind_info} usage:{usage} index:{index_info}",
                 self.indent,
             )
             self.jacktokenizer.advance()
@@ -347,3 +413,16 @@ class CompilationEngine:
             self.compileKeyword(correct_token)
         else:
             self.compileIdentifier(category="class", usage=False)
+
+    def _kind_to_segment(self, kind: str) -> str:
+        """変数の種類をVMセグメントにマッピングする"""
+        if kind == "STATIC":
+            return "STATIC"
+        elif kind == "FIELD":
+            return "THIS"
+        elif kind == "ARG":
+            return "ARGUMENT"
+        elif kind == "VAR":
+            return "LOCAL"
+        else:
+            return "CONSTANT"  # デフォルト値
