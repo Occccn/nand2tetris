@@ -150,13 +150,20 @@ class CompilationEngine:
         self._write_markup_no_token("doStatement", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("do")
+
+        # サブルーチン名を取得
+        subroutine_name = self.jacktokenizer.current_token
+
         self.compileIdentifier(category="subroutine", usage=False)
-        self.compileSubroutineCall()
+        self.compileSubroutineCall(subroutine_name)
+
+        self.vm_writer.write_pop("TEMP", 0)
+
         self.compileSymbol(";")
         self.indent -= 1
         self._write_markup_no_token("doStatement", self.indent, closed=True)
 
-    def compileSubroutineCall(self):
+    def compileSubroutineCall(self, subroutine_name=None):
         """subroutineCallをコンパイルする"""
         # self.compileIdentifier()
         if self.jacktokenizer.current_token == ".":
