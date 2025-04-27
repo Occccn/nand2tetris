@@ -14,11 +14,7 @@ class CompilationEngine:
         self.class_table = SymbolTable()
         self.vm_writer = VMWriter(output_file.with_suffix(".vm"))
         # 制御構造ごとに独立したカウンター
-        self.label_counters = {
-            "IF": 0,
-            "WHILE": 0,
-            "DO": 0,  # 必要に応じて他の制御構造も追加
-        }
+        self.label_counter = 0
         self.class_name = ""
 
     def run(self) -> None:
@@ -231,15 +227,29 @@ class CompilationEngine:
 
     def compileWhile(self):
         """whileをコンパイルする"""
+        label_start = f"WHILE_START_{self.label_counter}"
+        label_end = f"WHILE_END_{self.label_counter}"
+        self.label_counter += 1
         self._write_markup_no_token("whileStatement", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("while")
+
+        self.vm_writer.write_label(label_start)
+
         self.compileSymbol("(")
         self.compileExpression()
         self.compileSymbol(")")
+
+        self.vm_writer.write_arithmetic("NOT")
+        self.vm_writer.write_if(label_end)
+
         self.compileSymbol("{")
         self.compileStatements()
         self.compileSymbol("}")
+
+        self.vm_writer.write_goto(label_start)
+        self.vm_writer.write_label(label_end)
+
         self.indent -= 1
         self._write_markup_no_token("whileStatement", self.indent, closed=True)
 
