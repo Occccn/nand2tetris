@@ -13,6 +13,13 @@ class CompilationEngine:
         self.indent = 0
         self.class_table = SymbolTable()
         self.vm_writer = VMWriter(output_file.with_suffix(".vm"))
+        # 制御構造ごとに独立したカウンター
+        self.label_counters = {
+            "IF": 0,
+            "WHILE": 0,
+            "DO": 0,  # 必要に応じて他の制御構造も追加
+        }
+        self.class_name = ""
 
     def run(self) -> None:
         self.compileClass()
@@ -251,18 +258,40 @@ class CompilationEngine:
         """ifをコンパイルする"""
         self._write_markup_no_token("ifStatement", self.indent, closed=False)
         self.indent += 1
+
+        # ラベルの生成
+        label_else = f"IF_ELSE_{self.label_counter}"
+        label_end = f"IF_END_{self.label_counter}"
+        self.label_counter += 1
+
         self.compileKeyword("if")
         self.compileSymbol("(")
-        self.compileExpression()
+        self.compileExpression()  # 条件式をスタックに積む
         self.compileSymbol(")")
+
+        # 条件が偽ならelseまたは終了へジャンプ
+        self.vm_writer.write_arithmetic("NOT")  # 条件を反転
+        self.vm_writer.write_if(label_else)
+
         self.compileSymbol("{")
-        self.compileStatements()
+        self.compileStatements()  # if本体
         self.compileSymbol("}")
+
+        # if文の処理が終わったら終了ラベルに飛ぶ
+        self.vm_writer.write_goto(label_end)
+
+        # else部分の開始ラベル
+        self.vm_writer.write_label(label_else)
+
         if self.jacktokenizer.current_token == "else":
             self.compileKeyword("else")
             self.compileSymbol("{")
             self.compileStatements()
             self.compileSymbol("}")
+
+        # 終了ラベル
+        self.vm_writer.write_label(label_end)
+
         self.indent -= 1
         self._write_markup_no_token("ifStatement", self.indent, closed=True)
 
