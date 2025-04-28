@@ -267,7 +267,14 @@ class CompilationEngine:
         self.compileKeyword("return")
         if self.jacktokenizer.current_token != ";":
             self.compileExpression()
+        else:
+            # 式がない場合は、0をスタックにプッシュ（void関数の場合）
+            self.vm_writer.write_push("CONSTANT", 0)
         self.compileSymbol(";")
+
+        # returnコマンドを発行
+        self.vm_writer.write_return()
+
         self.indent -= 1
         self._write_markup_no_token("returnStatement", self.indent, closed=True)
 
