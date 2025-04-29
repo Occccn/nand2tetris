@@ -70,20 +70,28 @@ class CompilationEngine:
         self.subroutine_table = SymbolTable()
         self._write_markup_no_token("subroutineDec", self.indent, closed=False)
         self.indent += 1
+        subroutine_type = self.jacktokenizer.current_token
         self.compileKeyword(["constructor", "function", "method"])
         self.compileType(["void", "int", "char", "boolean"])
+
+        subroutine_name = self.jacktokenizer.current_token
         self.compileIdentifier(category="subroutine", usage=False)
         self.compileSymbol("(")
-        self.compileParameterList()
+        self.compileParameterList(subroutine_type)
         self.compileSymbol(")")
-        self.compileSubroutineBody()
+        self.compileSubroutineBody(subroutine_type, subroutine_name)
         self.indent -= 1
         self._write_markup_no_token("subroutineDec", self.indent, closed=True)
 
-    def compileParameterList(self):
+    def compileParameterList(self, subroutine_type):
         """parameterListをコンパイルする"""
         self._write_markup_no_token("parameterList", self.indent, closed=False)
         self.indent += 1
+        # メソッドの場合、this参照を暗黙の第0引数として追加
+        if subroutine_type == "method":
+            self.subroutine_table.define("this", self.class_name, "ARG")
+
+        arg_counter = 0
         while self.jacktokenizer.current_token != ")":
             _keyword = self.jacktokenizer.current_token
             self.compileType(["int", "char", "boolean"])
@@ -92,17 +100,36 @@ class CompilationEngine:
             self.compileIdentifier(category="ARG", usage=False, index=index)
             if self.jacktokenizer.current_token == ",":
                 self.compileSymbol(",")
+            arg_counter += 1
         self.indent -= 1
         self._write_markup_no_token("parameterList", self.indent, closed=True)
-        pass
 
-    def compileSubroutineBody(self):
+        return arg_counter
+
+    def compileSubroutineBody(self, subroutine_type, subroutine_name):
         """subroutineBodyをコンパイルする"""
         self._write_markup_no_token("subroutineBody", self.indent, closed=False)
         self.indent += 1
         self.compileSymbol("{")
+        var_counter = 0
         while self.jacktokenizer.current_token == "var":
             self.compileVarDec()
+            var_counter += 1
+
+        self.vm_writer.write_function(self.class_name + "." + self.jacktokenizer.current_token, var_counter)
+
+        # サブルーチン種別に応じた特殊処理
+        if subroutine_type == "method":
+            # メソッド: thisポインタを設定（第0引数）
+            self.vm_writer.write_push("ARGUMENT", 0)
+            self.vm_writer.write_pop("POINTER", 0)
+        elif subroutine_type == "constructor":
+            # コンストラクタ: メモリ確保してthisポインタを設定
+            field_count = self.class_table.varCount("FIELD")
+            self.vm_writer.write_push("CONSTANT", field_count)
+            self.vm_writer.write_call("Memory.alloc", 1)
+            self.vm_writer.write_pop("POINTER", 0)
+
         self.compileStatements()
         self.compileSymbol("}")
         self.indent -= 1
@@ -165,13 +192,45 @@ class CompilationEngine:
 
     def compileSubroutineCall(self, subroutine_name=None):
         """subroutineCallをコンパイルする"""
-        # self.compileIdentifier()
+        nArgs = 0
+
+        # メソッド呼び出しの場合 (例: point.distance())
         if self.jacktokenizer.current_token == ".":
             self.compileSymbol(".")
+            method_name = self.jacktokenizer.current_token
             self.compileIdentifier(category="subroutine", usage=False)
+
+            # オブジェクト名を取得してシンボルテーブルから探索
+            obj_type = None
+            if subroutine_name is not None:
+                # サブルーチンテーブルで探索
+                kind = self.subroutine_table.kindOf(subroutine_name)
+                if kind is not None:
+                    obj_type = self.subroutine_table.typeOf(subroutine_name)
+                    index = self.subroutine_table.indexOf(subroutine_name)
+                    segment = self._kind_to_segment(kind)
+                    self.vm_writer.write_push(segment, index)
+                    nArgs = 1  # thisポインタが第1引数
+                else:
+                    # クラステーブルで探索
+                    kind = self.class_table.kindOf(subroutine_name)
+                    if kind is not None:
+                        obj_type = self.class_table.typeOf(subroutine_name)
+                        index = self.class_table.indexOf(subroutine_name)
+                        segment = self._kind_to_segment(kind)
+                        self.vm_writer.write_push(segment, index)
+                        nArgs = 1  # thisポインタが第1引数
+            function_name = f"{obj_type}.{method_name}" if obj_type else f"{subroutine_name}.{method_name}"
+        else:
+            # クラス内メソッド呼び出し (例: this.doSomething())
+            function_name = f"{self.class_name}.{subroutine_name}"
+            # thisポインタをプッシュ
+            self.vm_writer.write_push("POINTER", 0)
+            nArgs = 1  # thisポインタが第1引数
         self.compileSymbol("(")
-        self.compileExpressionList()
+        nArgs += self.compileExpressionList()
         self.compileSymbol(")")
+        self.vm_writer.write_call(function_name, nArgs)
 
     def compileLet(self):
         """letをコンパイルする"""
@@ -409,12 +468,16 @@ class CompilationEngine:
         """expressionListをコンパイルする"""
         self._write_markup_no_token("expressionList", self.indent, closed=False)
         self.indent += 1
+        nArgs = 0  # 引数の数をカウント
         while self.jacktokenizer.current_token != ")":
             self.compileExpression()
+            nArgs += 1
             if self.jacktokenizer.current_token == ",":
                 self.compileSymbol(",")
         self.indent -= 1
         self._write_markup_no_token("expressionList", self.indent, closed=True)
+
+        return nArgs
 
     def compileKeyword(self, correct_token: list[str] | str):
         """keywordをコンパイルする"""
