@@ -160,7 +160,7 @@ class CompilationEngine:
             kind = self.class_table.kindOf(var_name)
             index = self.class_table.indexOf(var_name)
 
-        self.compileIdentifier(category="VAR", usage=True, index=index)
+        self.compileIdentifier(category="VAR", usage=False, index=index)
 
         # カンマで区切られた追加の変数がある場合
         while self.jacktokenizer.current_token == ",":
@@ -169,7 +169,7 @@ class CompilationEngine:
 
             self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
             index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
-            self.compileIdentifier(category="VAR", usage=True, index=index)
+            self.compileIdentifier(category="VAR", usage=False, index=index)
 
         self.compileSymbol(";")
         self.indent -= 1
