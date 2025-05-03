@@ -8,6 +8,7 @@ class JackTokenizer:
         with open(path) as f:
             self.lines = self._skip_comment(f.readlines())
         self.TOKEN = Token()
+        self.previous_token = None
 
     def _skip_comment(self, lines: list[str]) -> deque:
         """コメントをスキップする"""
@@ -74,7 +75,10 @@ class JackTokenizer:
             return True
 
     def advance(self) -> None:
-        self.current_token = self.tokens.pop(0)
+        if self.HasmoreTokens():
+            if hasattr(self, "current_token") and self.current_token is not None:
+                self.previous_token = self.current_token
+            self.current_token = self.tokens.pop(0)
 
     def tokenType(self) -> str:
         if self.current_token in self.TOKEN.keywords:

@@ -35,6 +35,7 @@ class CompilationEngine:
         self._write_markup_no_token("class", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("class")
+        self.class_name = self.jacktokenizer.current_token
         self.compileIdentifier(category="class", usage=False)
         self.compileSymbol("{")
         while self.jacktokenizer.current_token in ["static", "field"]:
@@ -111,12 +112,14 @@ class CompilationEngine:
         self._write_markup_no_token("subroutineBody", self.indent, closed=False)
         self.indent += 1
         self.compileSymbol("{")
-        var_counter = 0
-        while self.jacktokenizer.current_token == "var":
-            self.compileVarDec()
-            var_counter += 1
 
-        self.vm_writer.write_function(self.class_name + "." + self.jacktokenizer.current_token, var_counter)
+        # varDecごとの変数数を合計して正確なカウントを取得
+        var_count = 0
+        while self.jacktokenizer.current_token == "var":
+            var_count += self.compileVarDec()
+
+        # 関数定義を出力
+        self.vm_writer.write_function(self.class_name + "." + subroutine_name, var_count)
 
         # サブルーチン種別に応じた特殊処理
         if subroutine_type == "method":
@@ -140,19 +143,39 @@ class CompilationEngine:
         self._write_markup_no_token("varDec", self.indent, closed=False)
         self.indent += 1
         self.compileKeyword("var")
+
+        # 変数の型を取得
         _type = self.jacktokenizer.current_token
         self.compileType(["int", "char", "boolean"])
-        self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
-        index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
+
+        # 最初の変数を処理
+        var_count = 1  # カウンタを初期化（最初の変数から開始）
+        var_name = self.jacktokenizer.current_token
+        self.subroutine_table.define(var_name, _type, "VAR")
+
+        kind = self.subroutine_table.kindOf(var_name)
+        if kind is not None:
+            index = self.subroutine_table.indexOf(var_name)
+        else:
+            kind = self.class_table.kindOf(var_name)
+            index = self.class_table.indexOf(var_name)
+
         self.compileIdentifier(category="VAR", usage=True, index=index)
+
+        # カンマで区切られた追加の変数がある場合
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
+            var_count += 1  # 追加の変数ごとにカウンタを増やす
+
             self.subroutine_table.define(self.jacktokenizer.current_token, _type, "VAR")
             index = self.subroutine_table.indexOf(self.jacktokenizer.current_token)
             self.compileIdentifier(category="VAR", usage=True, index=index)
+
         self.compileSymbol(";")
         self.indent -= 1
         self._write_markup_no_token("varDec", self.indent, closed=True)
+
+        return var_count  # 宣言された変数の数を返す
 
     def compileStatements(self):
         """statementsをコンパイルする"""
@@ -244,10 +267,16 @@ class CompilationEngine:
         var_name = self.jacktokenizer.current_token
 
         # シンボルテーブルから変数情報を取得
-        kind = self.subroutine_table.kindOf(var_name) or self.class_table.kindOf(var_name)
-        index = self.subroutine_table.indexOf(var_name) or self.class_table.indexOf(var_name)
+        kind = self.subroutine_table.kindOf(var_name)
+        if kind is not None:
+            index = self.subroutine_table.indexOf(var_name)
+        else:
+            kind = self.class_table.kindOf(var_name)
+            index = self.class_table.indexOf(var_name)
+        # もし変数が見つからなければエラーとする
+        if kind is None or index is None:
+            raise ValueError(f"変数 {var_name} がシンボルテーブルに見つかりません")
         segment = self._kind_to_segment(kind)
-
         # 識別子の処理（XML出力のみ）
         self.compileIdentifier(category=kind, usage=False, index=index)
 
@@ -445,16 +474,59 @@ class CompilationEngine:
             self.jacktokenizer.advance()
 
         elif self.jacktokenizer.tokenType() == "identifier":
+            var_name = self.jacktokenizer.current_token
+
+            # 変数が配列アクセスやメソッド呼び出しでなければ、単純な変数参照なのでプッシュする
+            next_token = self.jacktokenizer.next_token()  # 次のトークンを先読みする
+            if next_token not in ["[", "(", "."]:
+                # 単純な変数参照の場合はここでプッシュする
+                kind = self.subroutine_table.kindOf(var_name)
+                if kind is not None:
+                    index = self.subroutine_table.indexOf(var_name)
+                else:
+                    kind = self.class_table.kindOf(var_name)
+                    if kind is not None:
+                        index = self.class_table.indexOf(var_name)
+                    else:
+                        raise ValueError(f"変数 {var_name} がシンボルテーブルに見つかりません")
+
+                segment = self._kind_to_segment(kind)
+                self.vm_writer.write_push(segment, index)
+
+            # XML出力のために識別子を処理
             self.compileIdentifier(category="VAR", usage=False)
+
+            # 配列やメソッド呼び出しの処理（既存コード）
             if self.jacktokenizer.current_token == "[":
+                # 変数名の情報を取得
+                var_name = self.jacktokenizer.previous_token
+                kind = self.subroutine_table.kindOf(var_name) or self.class_table.kindOf(var_name)
+                index = self.subroutine_table.indexOf(var_name) or self.class_table.indexOf(var_name)
+                segment = self._kind_to_segment(kind)
+
+                # ベースアドレスをプッシュ
+                self.vm_writer.write_push(segment, index)
+
                 self.compileSymbol("[")
-                self.compileExpression()
+                self.compileExpression()  # インデックスをスタックにプッシュ
                 self.compileSymbol("]")
+
+                # ベースアドレス + インデックスを計算
+                self.vm_writer.write_arithmetic("ADD")
+
+                # 配列要素の値を取得 ([base+index] の値)
+                self.vm_writer.write_pop("POINTER", 1)  # THAT = base+index
+                self.vm_writer.write_push("THAT", 0)  # スタックに [base+index] の値をプッシュ
             elif self.jacktokenizer.current_token in ["(", "."]:
-                self.compileSubroutineCall()
+                self.compileSubroutineCall(var_name)
         elif self.jacktokenizer.current_token in ["-", "~"]:
-            self.compileSymbol(self.jacktokenizer.current_token)
+            op = self.jacktokenizer.current_token
+            self.compileSymbol(op)
             self.compileTerm()
+            if op == "-":
+                self.vm_writer.write_arithmetic("NEG")
+            elif op == "~":
+                self.vm_writer.write_arithmetic("NOT")
         elif self.jacktokenizer.current_token == "(":
             self.compileSymbol("(")
             self.compileExpression()

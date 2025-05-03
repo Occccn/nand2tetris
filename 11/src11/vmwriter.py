@@ -4,6 +4,7 @@ from typing import Literal
 class VMWriter:
     def __init__(self, output_file) -> None:
         self.f = open(output_file, "w")
+        self.current_function = None  # 現在処理中の関数名を追跡
 
     def write_push(
         self,
@@ -33,6 +34,8 @@ class VMWriter:
         self.f.write(f"call {name} {n_args}\n")
 
     def write_function(self, name: str, n_locals: int) -> None:
+        """関数定義を書き込む"""
+        self.current_function = name  # 現在の関数名を設定
         self.f.write(f"function {name} {n_locals}\n")
 
     def write_return(self) -> None:
