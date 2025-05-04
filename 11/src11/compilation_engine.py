@@ -56,12 +56,12 @@ class CompilationEngine:
         self.compileType(["int", "char", "boolean"])
         self.class_table.define(self.jacktokenizer.current_token, _type, _keyword)
         index = self.class_table.indexOf(self.jacktokenizer.current_token)
-        self.compileIdentifier(category=_keyword, usage=True, index=index)
+        self.compileIdentifier(category=_keyword, usage=False, index=index)
         while self.jacktokenizer.current_token == ",":
             self.compileSymbol(",")
             self.class_table.define(self.jacktokenizer.current_token, _type, _keyword)
             index = self.class_table.indexOf(self.jacktokenizer.current_token)
-            self.compileIdentifier(category=_keyword, usage=True, index=index)
+            self.compileIdentifier(category=_keyword, usage=False, index=index)
         self.compileSymbol(";")
         self.indent -= 1
         self._write_markup_no_token("classVarDec", self.indent, closed=True)
@@ -500,8 +500,23 @@ class CompilationEngine:
             if self.jacktokenizer.current_token == "[":
                 # 変数名の情報を取得
                 var_name = self.jacktokenizer.previous_token
-                kind = self.subroutine_table.kindOf(var_name) or self.class_table.kindOf(var_name)
-                index = self.subroutine_table.indexOf(var_name) or self.class_table.indexOf(var_name)
+
+                # サブルーチンテーブルで変数を探す
+                kind = self.subroutine_table.kindOf(var_name)
+                if kind is not None:
+                    index = self.subroutine_table.indexOf(var_name)
+                else:
+                    # クラステーブルで変数を探す
+                    kind = self.class_table.kindOf(var_name)
+                    if kind is not None:
+                        index = self.class_table.indexOf(var_name)
+                    else:
+                        raise ValueError(f"変数 {var_name} がシンボルテーブルに見つかりません")
+
+                # インデックスがNoneでないことを確認
+                if index is None:
+                    raise ValueError(f"変数 {var_name} のインデックスが見つかりません")
+
                 segment = self._kind_to_segment(kind)
 
                 # ベースアドレスをプッシュ
